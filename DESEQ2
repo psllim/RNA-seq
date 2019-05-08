@@ -1,0 +1,191 @@
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+BiocManager::install("DESeq2", version = "3.8")
+BiocManager::install("apeglm", version = "3.8")
+
+library(DESeq2)
+library(apeglm)
+
+
+# load package
+library(pheatmap)
+
+
+SETa1 <- read.table("SET1.tabular", sep = "\t", header = TRUE, row.names = 1)
+SETa2 <- read.table("SET2.tabular", sep = "\t", header = TRUE, row.names = 1)
+SETa3 <- read.table("SET3.tabular", sep = "\t", header = TRUE, row.names = 1)
+SETaDOX1<- read.table("SET4.tabular", sep = "\t", header = TRUE, row.names = 1)
+SETaDOX2<- read.table("SET5.tabular", sep = "\t", header = TRUE, row.names = 1)
+SETaDOX3<- read.table("SET6.tabular", sep = "\t", header = TRUE, row.names = 1)
+
+SETa1[rownames(SETa1) == "56086",]/sum(SETa1[,1])
+SETa2[rownames(SETa1) == "56086",]/sum(SETa2[,1])
+SETa3[rownames(SETa1) == "56086",]/sum(SETa3[,1])
+SETaDOX1[rownames(SETa1) == "56086",]/sum(SETaDOX1[,1])
+SETaDOX2[rownames(SETa1) == "56086",]/sum(SETaDOX2[,1])
+SETaDOX3[rownames(SETa1) == "56086",]/sum(SETaDOX3[,1])
+
+sum(SETa1[,1])
+sum(SETa2[,1])
+sum(SETa3[,1])
+sum(SETaDOX1[,1])
+sum(SETaDOX2[,1])
+sum(SETaDOX3[,1])
+
+
+SETexperiment <- cbind.data.frame(SETa2, SETa3, SETaDOX2,SETaDOX3)
+SETexperiment <- cbind.data.frame(SETa1, SETa2, SETaDOX2,SETaDOX3)
+
+coldata <- matrix(nrow = 4, ncol = 2, data = c("ctl","ctl","dox","dox","single-read","single-read","single-read","single-read","single-read","single-read"))
+rownames(coldata) <- colnames(SETexperiment)
+colnames(coldata) <- c("condition", "type")
+coldata
+
+coldata <- matrix(nrow = 5, ncol = 2, data = c("ctl","ctl","dox",  "dox","dox","single-read","single-read","single-read","single-read","single-read","single-read"))
+rownames(coldata) <- colnames(SETexperiment)
+colnames(coldata) <- c("condition", "type")
+coldata
+
+dds <- DESeqDataSetFromMatrix(countData = SETexperiment,
+                              colData = coldata,
+                              design = ~ condition)
+
+
+dds <- DESeq(dds)
+res <- results(dds)
+
+resultsNames(dds)
+resLFC <- lfcShrink(dds, coef="condition_dox_vs_ctl", type="apeglm")
+
+plotMA(res, ylim=c(-2,2))
+plotMA(resLFC, ylim=c(-2,2))
+
+library(rafalib)
+mypar(1,1)
+mypar(4,5)
+
+plotCounts(dds, gene="14367", intgroup="condition", main = "SET")
+plotCounts(dds, gene="12387", intgroup="condition", main = "ctnnb1")
+plotCounts(dds, gene="21423", intgroup="condition", main = "tcf3")
+plotCounts(dds, gene="22059", intgroup="condition", main = "P53")
+plotCounts(dds, gene="17246", intgroup="condition", main = "mdm2")
+plotCounts(dds, gene="71950", intgroup="condition", main = "nanog")
+plotCounts(dds, gene="18999", intgroup="condition", main = "Oct4")
+plotCounts(dds, gene="13813", intgroup="condition", main = "Eomes")
+plotCounts(dds, gene="20674", intgroup="condition", main = "SOX2")
+plotCounts(dds, gene="16590", intgroup="condition", main = "kit")
+plotCounts(dds, gene="29820", intgroup="condition", main = "tnfrsf19")
+plotCounts(dds, gene="14536", intgroup="condition", main = "Nr6a1")
+plotCounts(dds, gene="18028", intgroup="condition", main = "Nfib")
+plotCounts(dds, gene="12575", intgroup="condition", main = "Spats1")
+plotCounts(dds, gene="22415", intgroup="condition", main = "wnt3")
+plotCounts(dds, gene="66932", intgroup="condition", main = "rex1")
+plotCounts(dds, gene="434423", intgroup="condition", main = "Dppa5a")
+plotCounts(dds, gene="12224", intgroup="condition", main = "klf5")
+plotCounts(dds, gene="21386", intgroup="condition", main = "tbx3")
+plotCounts(dds, gene="26380", intgroup="condition", main = "esrrb")
+
+ 
+12224 klf5
+
+#Dppa51 and tbx are markers of pluripotency (set's role as upregulated in cancer?')
+
+mypar(2,4)
+plotCounts(dds, gene="107971", intgroup="condition", main = "Frs3")#Frs3 fibroblast growth factor receptor substrate 
+plotCounts(dds, gene="231148", intgroup="condition", main = "Ctgf") #Ablim2 actin-binding LIM protein 2
+plotCounts(dds, gene="67942", intgroup="condition", main = "Atp5g2")
+plotCounts(dds, gene="116871", intgroup="condition", main = "Mta3")
+plotCounts(dds, gene="67037", intgroup="condition", main = "Pmf1")
+plotCounts(dds, gene="14955", intgroup="condition", main = "H19")
+plotCounts(dds, gene="12306", intgroup="condition", main = "Anxa2")
+plotCounts(dds, gene="17711", intgroup="condition", main = "CYTB")
+plotCounts(dds, gene="26380", intgroup="condition", main = "")
+
+mypar(1,1)
+idx <- identify(res$baseMean, res$log2FoldChange)
+idx
+genelist <- rownames(res)[idx]
+write.csv(x = genelist, "mylist.csv")
+
+summary(res)
+head(res)
+res$padj 
+
+head(res[which(res$padj < 0.05,),])
+
+rownames(res[which(res$padj < 0.05,),])
+
+uplist<-matrix()
+downlist <-matrix()
+
+uplist_strict<- c(rownames(res[which((res$padj < 0.05) & (res$log2FoldChange >0)),]))
+downlist_strict <- c(rownames(res[which((res$padj < 0.05) & (res$log2FoldChange <0)),]))
+
+
+
+write.csv(x = downlist_strict, "verydown.csv")
+write.csv(x = uplist_strict, "veryup.csv")
+
+
+
+resLFC[rownames(res) == "56086",]
+
+head(resLFC)
+
+listofgenes <- which(res$padj < (0.05))
+
+which.max(res$padj)
+plotCounts(dds, gene=14433, intgroup="condition")
+
+lowpgenes <- c()
+
+mypar(5,5)
+
+for (i in 1:100) {
+  plotCounts(dds, gene=(listofgenes[i]), intgroup="condition")
+  lowpgenes[i] <- rownames((res[listofgenes[i],]))
+  }
+
+lowpgenes
+
+write.csv(lowpgenes, "lowpgenes.csv")
+
+text(6750.09626423296,0.357070429504589,labels="SET", col = "blue")
+
+ntd <- normTransform(dds)
+
+library("pheatmap")
+select <- order(rowMeans(counts(dds,normalized=TRUE)),
+                decreasing=TRUE)[1:20]
+df <- as.data.frame(colData(dds)[,c("condition")])
+pheatmap(assay(ntd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
+         cluster_cols=FALSE, annotation_col=df)
+
+labelPoints(
+  x, y, labels, 
+  cex = 0.7, offs = 0.01, xpd = TRUE, 
+  jiggle = 0, protectEdges = TRUE, 
+  doPlot = TRUE, ...
+  
+  
+  
+#Report Log2Foldchange and save to txt file (input list of entrez IDs) 
+
+up10 <- read.table("input.txt")
+
+indices10 <- c()
+
+for (i in 1:length(up10$V1)){
+  indices10[i] <- (which(rownames(res) == up10$V1[i]))
+  print(indices10[i])
+}
+
+res$log2FoldChange[indices10]
+
+up10 <- res$log2FoldChange[indices10]
+
+
+write.csv(up10, "output.txt")
+
+
+
